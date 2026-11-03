@@ -201,8 +201,6 @@ tr:hover{
 
 </div>
 
-<input type="file" id="archivo" accept=".csv">
-
 <div class="buscador">
 
 <span class="icono-busqueda">🔎</span>
@@ -276,11 +274,9 @@ window.onload = function(){
 
     setInterval(actualizarHora,1000);
 
-};
+    cargarEquiposSupabase();
 
-document
-.getElementById("archivo")
-.addEventListener("change", cargarCSV);
+};
 
 document
 .getElementById("buscar")
@@ -295,57 +291,6 @@ document
     }
 
 });
-
-function cargarCSV(event){
-
-    const archivo = event.target.files[0];
-
-    if(!archivo) return;
-
-    const lector = new FileReader();
-
-    lector.onload = function(e){
-
-        const texto = e.target.result;
-
-        const lineas = texto.split(/\r?\n/);
-
-        equipos = [];
-
-        for(let i=1;i<lineas.length;i++){
-
-            const linea=lineas[i].trim();
-
-            if(linea==="") continue;
-
-            const datos=linea.split(";");
-
-            if(datos.length>=2){
-
-                equipos.push({
-    nombre: datos[0].trim(),
-    ip: datos[1].trim(),
-    sdseb: datos[2] ? datos[2].trim() : ""
-});
-
-
-            }
-
-        }
-
-        document.getElementById("contador").innerText =
-        "Base cargada correctamente.";
-
-        document.getElementById("totalEquipos").innerText =
-        "Total de equipos cargados: " + equipos.length;
-
-        document.getElementById("archivo").style.display = "none";
-
-    };
-
-    lector.readAsText(archivo);
-
-}
 
 function mostrar(lista){
 
@@ -521,7 +466,17 @@ function limpiarBusqueda(){
     document.getElementById("tabla").innerHTML="";
 
 }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+const SUPABASE_URL = "https://mkkqczcfsmqtomtturen.supabase.co";
 
+const SUPABASE_KEY = "sb_publishable_vppPQJQJmxYCfm7jjwPGjg_2babE5Jm";
+
+const db = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+</script>
 </script>
 
 </body>
