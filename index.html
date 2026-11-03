@@ -261,222 +261,234 @@ Creado por: Dania Estefania Rubio Benitez
 
 </div>
 
+<!-- Supabase JS: cargar antes del código de la aplicación -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+"use strict";
 
 let equipos = [];
-const VERSION = "1.0.0";
+let resultadosActuales = [];
+
+const VERSION = "1.0.1";
 const AUTOR = "Dania Estefania Rubio Benitez";
 const FECHA_VERSION = "03/11/2026";
 
-window.onload = function(){
+const SUPABASE_URL = "https://mkkqczcfsmqtomtturen.supabase.co";
+const SUPABASE_KEY = "sb_publishable_vppPQJQJmxYCfm7jjwPGjg_2babE5Jm";
+const NOMBRE_TABLA = "equipos";
+const TAMANO_PAGINA = 1000;
 
+// La clave publishable puede utilizarse en el navegador si RLS está habilitado
+// y las políticas de la tabla permiten únicamente las operaciones necesarias.
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+window.addEventListener("DOMContentLoaded", async () => {
     actualizarHora();
-
-    setInterval(actualizarHora,1000);
-
-    cargarEquiposSupabase();
-
-};
-
-document
-.getElementById("buscar")
-.addEventListener("keydown", function(event){
-
-    if(event.key === "Enter"){
-
-        event.preventDefault();
-
-        filtrar();
-
-    }
-
+    window.setInterval(actualizarHora, 1000);
+    await cargarEquiposSupabase();
 });
 
-function mostrar(lista){
-
-    let html="";
-
-    lista.forEach(item=>{
-
-        html += `
-        <tr>
-
-    <td>${item.nombre}</td>
-
-    <td>
-        ${item.ip}
-
-        <button
-        class="btn"
-        onclick="copiarIP('${item.ip}')">
-        Copiar
-        </button>
-
-    </td>
-
-    <td>${item.sdseb}</td>
-
-</tr>
-        `;
-
-    });
-
-    document.getElementById("tabla").innerHTML = html;
-
-}
-
-function filtrar(){
-
-    const texto =
-    document.getElementById("buscar")
-    .value
-    .toLowerCase()
-    .trim();
-
-    if(texto.length < 3){
-
-        document.getElementById("tabla").innerHTML = "";
-
-        document.getElementById("contador").innerText =
-        "Escriba mínimo 3 caracteres para buscar";
-
-        document.getElementById("resultadosVisibles").innerText =
-        "";
-
-        return;
-
+document.getElementById("buscar").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        filtrar();
     }
+});
 
-    const resultado = equipos.filter(item =>
-
-    item.nombre.toLowerCase().includes(texto)
-
-    ||
-
-    item.ip.toLowerCase().includes(texto)
-
-    ||
-
-    (item.sdseb || "")
-        .toLowerCase()
-        .includes(texto)
-
-);
-
-    mostrar(resultado.slice(0,100));
-
-    document.getElementById("contador").innerText =
-    "Resultados encontrados: " + resultado.length;
-
-    document.getElementById("resultadosVisibles").innerText =
-    "Mostrando " +
-    Math.min(resultado.length,100) +
-    " de " +
-    resultado.length +
-    " registros";
-
-}
-
-function copiarIP(ip){
-
-    navigator.clipboard.writeText(ip);
-
-    document.getElementById("contador").innerText =
-    "IP copiada correctamente: " + ip;
-
-}
-
-function volverInicio(){
-
-    document.getElementById("buscar").value = "";
-
-    document.getElementById("tabla").innerHTML = "";
-
-    document.getElementById("contador").innerText =
-    "Ingrese un criterio de búsqueda.";
-
-    document.getElementById("resultadosVisibles").innerText =
-    "";
-
-}
-function cambiarTema(){
-
-    document.body.classList.toggle("tema-oscuro");
-
-    const boton = document.querySelector(
-        'button[onclick="cambiarTema()"]'
-    );
-
-    if(document.body.classList.contains("tema-oscuro")){
-
-        boton.innerHTML = "☀️ Modo Claro";
-
-    }else{
-
-        boton.innerHTML = "🌙 Modo Oscuro";
-
+function actualizarHora() {
+    const elemento = document.getElementById("fechaHora");
+    if (elemento) {
+        elemento.textContent = new Date().toLocaleString("es-CO", {
+            dateStyle: "full",
+            timeStyle: "medium"
+        });
     }
-
 }
 
-function exportarCSV(){
+async function cargarEquiposSupabase() {
+    const contador = document.getElementById("contador");
+    const total = document.getElementById("totalEquipos");
 
-    let texto = "Nombre;IP;SDS-EB\n";
+    contador.textContent = "Conectando con la base de datos...";
+    total.textContent = "";
 
-    const filas =
-    document.querySelectorAll("#tabla tr");
+    try {
+        let registros = [];
+        let desde = 0;
 
-    filas.forEach(fila => {
+        // Se consultan páginas para no quedar limitados a los primeros 1.000 registros.
+        while (true) {
+            const hasta = desde + TAMANO_PAGINA - 1;
+            const { data, error } = await db
+                .from(NOMBRE_TABLA)
+                .select("nombre, ip, sdseb")
+                .order("nombre", { ascending: true })
+                .range(desde, hasta);
 
-        const columnas =
-        fila.querySelectorAll("td");
+            if (error) throw error;
 
-        if(columnas.length >= 3){
+            registros = registros.concat(data || []);
 
-            texto +=
-            columnas[0].innerText + ";" +
-            columnas[1].innerText.replace("Copiar","").trim() + ";" +
-            columnas[2].innerText +
-            "\n";
-
+            if (!data || data.length < TAMANO_PAGINA) break;
+            desde += TAMANO_PAGINA;
         }
 
+        equipos = registros.map((item) => ({
+            nombre: String(item.nombre ?? ""),
+            ip: String(item.ip ?? ""),
+            sdseb: String(item.sdseb ?? "")
+        }));
+
+        total.textContent = "Total de equipos cargados: " + equipos.length;
+        contador.textContent = equipos.length
+            ? "Conexión exitosa. Escriba mínimo 3 caracteres para buscar."
+            : "Conexión exitosa, pero la tabla no contiene registros.";
+
+    } catch (error) {
+        console.error("Error consultando Supabase:", error);
+        contador.textContent = "No fue posible cargar los equipos. Verifique la conexión y los permisos de Supabase.";
+        total.textContent = "";
+    }
+}
+
+function escaparHTML(valor) {
+    return String(valor).replace(/[&<>"']/g, (caracter) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[caracter]);
+}
+
+function mostrar(lista) {
+    const tabla = document.getElementById("tabla");
+    tabla.innerHTML = "";
+
+    lista.forEach((item) => {
+        const fila = document.createElement("tr");
+
+        const celdaNombre = document.createElement("td");
+        celdaNombre.textContent = item.nombre;
+
+        const celdaIP = document.createElement("td");
+        const textoIP = document.createElement("span");
+        textoIP.textContent = item.ip;
+
+        const botonCopiar = document.createElement("button");
+        botonCopiar.className = "btn";
+        botonCopiar.type = "button";
+        botonCopiar.textContent = "Copiar";
+        botonCopiar.addEventListener("click", () => copiarIP(item.ip));
+
+        celdaIP.append(textoIP, document.createTextNode(" "), botonCopiar);
+
+        const celdaSDS = document.createElement("td");
+        celdaSDS.textContent = item.sdseb;
+
+        fila.append(celdaNombre, celdaIP, celdaSDS);
+        tabla.appendChild(fila);
+    });
+}
+
+function filtrar() {
+    const texto = document.getElementById("buscar").value.toLowerCase().trim();
+    const contador = document.getElementById("contador");
+    const visibles = document.getElementById("resultadosVisibles");
+
+    if (texto.length < 3) {
+        document.getElementById("tabla").innerHTML = "";
+        resultadosActuales = [];
+        contador.textContent = "Escriba mínimo 3 caracteres para buscar.";
+        visibles.textContent = "";
+        return;
+    }
+
+    const resultado = equipos.filter((item) =>
+        item.nombre.toLowerCase().includes(texto) ||
+        item.ip.toLowerCase().includes(texto) ||
+        item.sdseb.toLowerCase().includes(texto)
+    );
+
+    // Se conservan todos los resultados para exportar; la tabla muestra máximo 100.
+    resultadosActuales = resultado;
+    mostrar(resultado.slice(0, 100));
+
+    contador.textContent = "Resultados encontrados: " + resultado.length;
+    visibles.textContent = "Mostrando " + Math.min(resultado.length, 100) +
+        " de " + resultado.length + " registros";
+}
+
+async function copiarIP(ip) {
+    try {
+        await navigator.clipboard.writeText(ip);
+        document.getElementById("contador").textContent =
+            "IP copiada correctamente: " + ip;
+    } catch (error) {
+        console.error("No fue posible copiar la IP:", error);
+        document.getElementById("contador").textContent =
+            "No fue posible copiar la IP. Verifique los permisos del navegador.";
+    }
+}
+
+function volverInicio() {
+    document.getElementById("buscar").value = "";
+    document.getElementById("tabla").innerHTML = "";
+    resultadosActuales = [];
+    document.getElementById("contador").textContent =
+        "Ingrese un criterio de búsqueda.";
+    document.getElementById("resultadosVisibles").textContent = "";
+}
+
+function cambiarTema() {
+    document.body.classList.toggle("tema-oscuro");
+
+    const boton = document.querySelector('button[onclick="cambiarTema()"]');
+    if (boton) {
+        boton.textContent = document.body.classList.contains("tema-oscuro")
+            ? "☀️ Modo Claro"
+            : "🌙 Modo Oscuro";
+    }
+}
+
+function exportarCSV() {
+    if (resultadosActuales.length === 0) {
+        document.getElementById("contador").textContent =
+            "No hay resultados para exportar. Realice una búsqueda primero.";
+        return;
+    }
+
+    const filas = [
+        ["Nombre", "IP", "SDS-EB"],
+        ...resultadosActuales.map((item) => [item.nombre, item.ip, item.sdseb])
+    ];
+
+    const contenido = filas.map((fila) =>
+        fila.map((valor) => '"' + String(valor).replace(/"/g, '""') + '"').join(";")
+    ).join("\r\n");
+
+    // BOM para que Excel reconozca correctamente los caracteres acentuados.
+    const blob = new Blob(["\uFEFF" + contenido], {
+        type: "text/csv;charset=utf-8;"
     });
 
-    const blob =
-    new Blob([texto], {type:"text/csv"});
-
-    const enlace =
-    document.createElement("a");
-
-    enlace.href =
-    URL.createObjectURL(blob);
-
-    enlace.download =
-    "Resultados_KouFrontEmpresas.csv";
-
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = "Resultados_KouFrontEmpresas.csv";
+    document.body.appendChild(enlace);
     enlace.click();
-
+    enlace.remove();
+    URL.revokeObjectURL(url);
 }
 
-function limpiarBusqueda(){
-
-    document.getElementById("buscar").value="";
-
-    document.getElementById("tabla").innerHTML="";
-
+function limpiarBusqueda() {
+    document.getElementById("buscar").value = "";
+    document.getElementById("tabla").innerHTML = "";
+    resultadosActuales = [];
+    document.getElementById("resultadosVisibles").textContent = "";
 }
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-const SUPABASE_URL = "https://mkkqczcfsmqtomtturen.supabase.co";
-
-const SUPABASE_KEY = "sb_publishable_vppPQJQJmxYCfm7jjwPGjg_2babE5Jm";
-
-const db = supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-);
-</script>
 </script>
 
 </body>
