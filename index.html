@@ -1,77 +1,292 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="icon" type="image/png" href="logo_claro.png">
+
+<style>
+
+body{
+    font-family:"Segoe UI",Arial,sans-serif;
+    background:#f4f4f4;
+    margin:0;
+    padding:30px;
+    transition:0.3s;
+}
+
+.contenedor{
+    max-width:1200px;
+    margin:auto;
+    background:white;
+    border-radius:12px;
+    padding:25px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.15);
+}
+
+.cabecera{
+    background:#d52b1e;
+    color:white;
+    border-radius:12px;
+    padding:25px;
+    margin-bottom:25px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.texto-cabecera h1{
+    margin:0;
+    font-size:38px;
+}
+
+.texto-cabecera p{
+    margin:8px 0;
+}
+
+#fechaHora{
+    font-size:14px;
+}
+
+.logo{
+    height:90px;
+    cursor:pointer;
+}
+
+input[type="file"]{
+    margin-bottom:15px;
+}
+
+.buscador{
+    position:relative;
+}
+
+.icono-busqueda{
+    position:absolute;
+    left:15px;
+    top:14px;
+    font-size:18px;
+}
+
+#buscar{
+    width:100%;
+    box-sizing:border-box;
+    padding:14px 14px 14px 45px;
+    border:2px solid #d52b1e;
+    border-radius:8px;
+    font-size:16px;
+    margin-bottom:15px;
+}
+
+#buscar:focus{
+    outline:none;
+    box-shadow:0 0 10px rgba(213,43,30,.3);
+}
+
+#contador{
+    color:#d52b1e;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+#totalEquipos{
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+}
+
+th{
+    background:#d52b1e;
+    color:white;
+    padding:14px;
+    text-align:left;
+}
+
+td{
+    padding:12px;
+    border-bottom:1px solid #e0e0e0;
+}
+
+tr:hover{
+    background:#fff3f2;
+}
+
+.btn{
+    background:#d52b1e;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:5px;
+    cursor:pointer;
+    margin-left:5px;
+}
+
+.btn:hover{
+    background:#b71c10;
+}
+
+.acciones{
+    margin-bottom:15px;
+}
+
+.footer{
+    text-align:center;
+    margin-top:25px;
+    font-size:12px;
+    color:#666;
+}
+
+/* MODO OSCURO */
+
+.tema-oscuro{
+    background:#202124;
+}
+
+.tema-oscuro .contenedor{
+    background:#303134;
+    color:white;
+}
+
+.tema-oscuro table{
+    background:#303134;
+}
+
+.tema-oscuro td{
+    color:white;
+    border-bottom:1px solid #555;
+}
+
+.tema-oscuro .footer{
+    color:#ddd;
+}
+
+#resultadosVisibles{
+    font-weight:bold;
+    margin-top:5px;
+    margin-bottom:15px;
+    color:#444;
+}
+
+.tema-oscuro #resultadosVisibles{
+    color:white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<div class="cabecera">
+
+<div class="texto-cabecera">
+
+<h1>Kou Front Empresas</h1>
+
+<p>Consulta de equipos por Nombre o Dirección IP</p>
+
+<div id="fechaHora"></div>
+
+</div>
+
+<a href="#" onclick="volverInicio()">
+<img src="logo_claro.png" class="logo" alt="Claro">
+</a>
+
+</div>
+
+<input type="file" id="archivo" accept=".csv">
+
+<div class="buscador">
+
+<span class="icono-busqueda">🔎</span>
+
+<input
+type="text"
+id="buscar"
+placeholder="Escriba mínimo 3 caracteres para buscar...">
+
+</div>
+
+<div id="contador">
+Seleccione el archivo CSV para comenzar.
+</div>
+
+<div id="totalEquipos"></div>
+
+<div id="resultadosVisibles"></div>
+
+<div class="acciones">
+
+<button class="btn" onclick="exportarCSV()">
+📥 Exportar Resultados
+</button>
+
+<button class="btn" onclick="cambiarTema()">
+🌙 Modo Oscuro
+</button>
+
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Nombre del Equipo</th>
+<th>Dirección IP</th>
+<th>SDS-EB</th>
+</tr>
+</thead>
+
+<tbody id="tabla">
+</tbody>
+
+</table>
+
+<div class="footer">
+Kou Front Empresas © 2026
+<br>
+Plataforma interna de consulta de inventario
+<br><br>
+Versión: 1.0.0
+<br>
+Creado por: Dania Estefania Rubio Benitez
+<br>
+Última actualización: 03/11/2026
+</div>
+
+</div>
+
 <script>
 
 let equipos = [];
-
 const VERSION = "1.0.0";
 const AUTOR = "Dania Estefania Rubio Benitez";
 const FECHA_VERSION = "03/11/2026";
 
-const supabaseUrl = "https://mkkqczcfsmqtomtturen.supabase.co/rest/v1/";
-
-const supabaseKey = "sb_publishable_vppPQJQJmxYCfm7jjwPGjg_2babE5Jm";
-
-const supabase = window.supabase.createClient(
-    supabaseUrl,
-    supabaseKey
-);
-
-window.onload = function () {
+window.onload = function(){
 
     actualizarHora();
 
-    setInterval(actualizarHora, 1000);
-
-    cargarEquipos();
+    setInterval(actualizarHora,1000);
 
 };
 
-async function cargarEquipos() {
-
-    document.getElementById("contador").innerText =
-        "Cargando base de datos...";
-
-    const { data, error } = await supabase
-        .from("equipos")
-        .select("*");
-
-    if (error) {
-
-        console.error(error);
-
-        document.getElementById("contador").innerText =
-            "Error cargando la base de datos";
-
-        return;
-    }
-
-    equipos = data.map(item => ({
-        nombre: item.Nombre || "",
-        ip: item.IP || "",
-        sdseb: item["SDS-EB"] || ""
-    }));
-
-    document.getElementById("contador").innerText =
-        "Base cargada correctamente";
-
-    document.getElementById("totalEquipos").innerText =
-        "Total de equipos cargados: " + equipos.length;
-}
-
-function actualizarHora() {
-
-    const ahora = new Date();
-
-    document.getElementById("fechaHora").innerText =
-        ahora.toLocaleString("es-CO");
-
-}
+document
+.getElementById("archivo")
+.addEventListener("change", cargarCSV);
 
 document
 .getElementById("buscar")
-.addEventListener("keydown", function (event) {
+.addEventListener("keydown", function(event){
 
-    if (event.key === "Enter") {
+    if(event.key === "Enter"){
 
         event.preventDefault();
 
@@ -81,25 +296,82 @@ document
 
 });
 
-function mostrar(lista) {
+function cargarCSV(event){
 
-    let html = "";
+    const archivo = event.target.files[0];
 
-    lista.forEach(item => {
+    if(!archivo) return;
+
+    const lector = new FileReader();
+
+    lector.onload = function(e){
+
+        const texto = e.target.result;
+
+        const lineas = texto.split(/\r?\n/);
+
+        equipos = [];
+
+        for(let i=1;i<lineas.length;i++){
+
+            const linea=lineas[i].trim();
+
+            if(linea==="") continue;
+
+            const datos=linea.split(";");
+
+            if(datos.length>=2){
+
+                equipos.push({
+    nombre: datos[0].trim(),
+    ip: datos[1].trim(),
+    sdseb: datos[2] ? datos[2].trim() : ""
+});
+
+
+            }
+
+        }
+
+        document.getElementById("contador").innerText =
+        "Base cargada correctamente.";
+
+        document.getElementById("totalEquipos").innerText =
+        "Total de equipos cargados: " + equipos.length;
+
+        document.getElementById("archivo").style.display = "none";
+
+    };
+
+    lector.readAsText(archivo);
+
+}
+
+function mostrar(lista){
+
+    let html="";
+
+    lista.forEach(item=>{
 
         html += `
         <tr>
-            <td>${item.nombre}</td>
-            <td>
-                ${item.ip}
-                <button
-                    class="btn"
-                    onclick="copiarIP('${item.ip}')">
-                    Copiar
-                </button>
-            </td>
-            <td>${item.sdseb}</td>
-        </tr>
+
+    <td>${item.nombre}</td>
+
+    <td>
+        ${item.ip}
+
+        <button
+        class="btn"
+        onclick="copiarIP('${item.ip}')">
+        Copiar
+        </button>
+
+    </td>
+
+    <td>${item.sdseb}</td>
+
+</tr>
         `;
 
     });
@@ -108,23 +380,23 @@ function mostrar(lista) {
 
 }
 
-function filtrar() {
+function filtrar(){
 
     const texto =
-        document.getElementById("buscar")
-        .value
-        .toLowerCase()
-        .trim();
+    document.getElementById("buscar")
+    .value
+    .toLowerCase()
+    .trim();
 
-    if (texto.length < 3) {
+    if(texto.length < 3){
 
         document.getElementById("tabla").innerHTML = "";
 
         document.getElementById("contador").innerText =
-            "Escriba mínimo 3 caracteres para buscar";
+        "Escriba mínimo 3 caracteres para buscar";
 
         document.getElementById("resultadosVisibles").innerText =
-            "";
+        "";
 
         return;
 
@@ -132,56 +404,57 @@ function filtrar() {
 
     const resultado = equipos.filter(item =>
 
-        item.nombre.toLowerCase().includes(texto)
+    item.nombre.toLowerCase().includes(texto)
 
-        ||
+    ||
 
-        item.ip.toLowerCase().includes(texto)
+    item.ip.toLowerCase().includes(texto)
 
-        ||
+    ||
 
-        item.sdseb.toLowerCase().includes(texto)
+    (item.sdseb || "")
+        .toLowerCase()
+        .includes(texto)
 
-    );
+);
 
-    mostrar(resultado.slice(0, 100));
+    mostrar(resultado.slice(0,100));
 
     document.getElementById("contador").innerText =
-        "Resultados encontrados: " + resultado.length;
+    "Resultados encontrados: " + resultado.length;
 
     document.getElementById("resultadosVisibles").innerText =
-        "Mostrando " +
-        Math.min(resultado.length, 100) +
-        " de " +
-        resultado.length +
-        " registros";
+    "Mostrando " +
+    Math.min(resultado.length,100) +
+    " de " +
+    resultado.length +
+    " registros";
 
 }
 
-function copiarIP(ip) {
+function copiarIP(ip){
 
     navigator.clipboard.writeText(ip);
 
     document.getElementById("contador").innerText =
-        "IP copiada correctamente: " + ip;
+    "IP copiada correctamente: " + ip;
 
 }
 
-function volverInicio() {
+function volverInicio(){
 
     document.getElementById("buscar").value = "";
 
     document.getElementById("tabla").innerHTML = "";
 
     document.getElementById("contador").innerText =
-        "Ingrese un criterio de búsqueda.";
+    "Ingrese un criterio de búsqueda.";
 
     document.getElementById("resultadosVisibles").innerText =
-        "";
+    "";
 
 }
-
-function cambiarTema() {
+function cambiarTema(){
 
     document.body.classList.toggle("tema-oscuro");
 
@@ -189,11 +462,11 @@ function cambiarTema() {
         'button[onclick="cambiarTema()"]'
     );
 
-    if (document.body.classList.contains("tema-oscuro")) {
+    if(document.body.classList.contains("tema-oscuro")){
 
         boton.innerHTML = "☀️ Modo Claro";
 
-    } else {
+    }else{
 
         boton.innerHTML = "🌙 Modo Oscuro";
 
@@ -201,52 +474,55 @@ function cambiarTema() {
 
 }
 
-function exportarCSV() {
+function exportarCSV(){
 
     let texto = "Nombre;IP;SDS-EB\n";
 
     const filas =
-        document.querySelectorAll("#tabla tr");
+    document.querySelectorAll("#tabla tr");
 
     filas.forEach(fila => {
 
         const columnas =
-            fila.querySelectorAll("td");
+        fila.querySelectorAll("td");
 
-        if (columnas.length >= 3) {
+        if(columnas.length >= 3){
 
             texto +=
-                columnas[0].innerText + ";" +
-                columnas[1].innerText.replace("Copiar", "").trim() + ";" +
-                columnas[2].innerText +
-                "\n";
+            columnas[0].innerText + ";" +
+            columnas[1].innerText.replace("Copiar","").trim() + ";" +
+            columnas[2].innerText +
+            "\n";
 
         }
 
     });
 
     const blob =
-        new Blob([texto], { type: "text/csv" });
+    new Blob([texto], {type:"text/csv"});
 
     const enlace =
-        document.createElement("a");
+    document.createElement("a");
 
     enlace.href =
-        URL.createObjectURL(blob);
+    URL.createObjectURL(blob);
 
     enlace.download =
-        "Resultados_KouFrontEmpresas.csv";
+    "Resultados_KouFrontEmpresas.csv";
 
     enlace.click();
 
 }
 
-function limpiarBusqueda() {
+function limpiarBusqueda(){
 
-    document.getElementById("buscar").value = "";
+    document.getElementById("buscar").value="";
 
-    document.getElementById("tabla").innerHTML = "";
+    document.getElementById("tabla").innerHTML="";
 
 }
 
 </script>
+
+</body>
+</html>
