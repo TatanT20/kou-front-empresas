@@ -252,7 +252,7 @@ Kou Front Empresas © 2026
 <br>
 Plataforma interna de consulta de inventario
 <br><br>
-Versión: 1.0.1
+Versión: 1.0.2
 <br>
 Creado por: Dania Estefania Rubio Benitez
 <br>
@@ -270,7 +270,7 @@ Creado por: Dania Estefania Rubio Benitez
 let equipos = [];
 let resultadosActuales = [];
 
-const VERSION = "1.0.1";
+const VERSION = "1.0.2";
 const AUTOR = "Dania Estefania Rubio Benitez";
 const FECHA_VERSION = "03/11/2026";
 
@@ -322,8 +322,8 @@ async function cargarEquiposSupabase() {
             const hasta = desde + TAMANO_PAGINA - 1;
             const { data, error } = await db
                 .from(NOMBRE_TABLA)
-                .select("nombre, ip, sdseb")
-                .order("nombre", { ascending: true })
+                .select('"Nombre","IP","SDS-EB"')
+                .order("Nombre", { ascending: true })
                 .range(desde, hasta);
 
             if (error) throw error;
@@ -335,9 +335,9 @@ async function cargarEquiposSupabase() {
         }
 
         equipos = registros.map((item) => ({
-            nombre: String(item.nombre ?? ""),
-            ip: String(item.ip ?? ""),
-            sdseb: String(item.sdseb ?? "")
+            nombre: String(item["Nombre"] ?? ""),
+            ip: String(item["IP"] ?? ""),
+            sdseb: String(item["SDS-EB"] ?? "")
         }));
 
         total.textContent = "Total de equipos cargados: " + equipos.length;
