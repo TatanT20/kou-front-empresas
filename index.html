@@ -201,8 +201,6 @@ tr:hover{
 
 </div>
 
-<input type="file" id="archivo" accept=".csv">
-
 <div class="buscador">
 
 <span class="icono-busqueda">🔎</span>
@@ -271,16 +269,13 @@ const AUTOR = "Dania Estefania Rubio Benitez";
 const FECHA_VERSION = "03/11/2026";
 
 window.onload = function(){
-
     actualizarHora();
 
     setInterval(actualizarHora,1000);
 
+    cargarEquipos();
 };
 
-document
-.getElementById("archivo")
-.addEventListener("change", cargarCSV);
 
 document
 .getElementById("buscar")
@@ -295,39 +290,6 @@ document
     }
 
 });
-
-function cargarCSV(event){
-
-    const archivo = event.target.files[0];
-
-    if(!archivo) return;
-
-    const lector = new FileReader();
-
-    lector.onload = function(e){
-
-        const texto = e.target.result;
-
-        const lineas = texto.split(/\r?\n/);
-
-        equipos = [];
-
-        for(let i=1;i<lineas.length;i++){
-
-            const linea=lineas[i].trim();
-
-            if(linea==="") continue;
-
-            const datos=linea.split(";");
-
-            if(datos.length>=2){
-
-                equipos.push({
-    nombre: datos[0].trim(),
-    ip: datos[1].trim(),
-    sdseb: datos[2] ? datos[2].trim() : ""
-});
-
 
             }
 
@@ -521,8 +483,39 @@ function limpiarBusqueda(){
     document.getElementById("tabla").innerHTML="";
 
 }
+async function cargarEquipos() {
 
+    const { data, error } = await supabase
+        .from('equipos')
+        .select('*');
+
+    if(error){
+        console.error(error);
+
+        document.getElementById("contador").innerText =
+            "Error cargando la base";
+
+        return;
+    }
+
+    equipos = data;
+
+    document.getElementById("contador").innerText =
+        "Base cargada correctamente";
+
+    document.getElementById("totalEquipos").innerText =
+        "Total de equipos cargados: " + equipos.length;
+}
 </script>
+    
+    const supabaseUrl = "https://mkkqczcfsmqtomtturen.supabase.co";
+const supabaseKey = "sb_publishable_vppPQJQJmxYCfm7jjwPGjg_2babE5Jm";
 
+const supabase = window.supabase.createClient(
+    supabaseUrl,
+    supabaseKey
+);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
 </body>
 </html>
